@@ -55,7 +55,7 @@ Si alguno de estos comandos no funciona, instala el software correspondiente.
 cd C:\Users\[tu_usuario]\Documents
 
 # Clonar el repositorio
-git clone [URL_DEL_REPOSITORIO]
+git clone git@github.com:rjardi/py-xls-integration.git
 cd py-xls-integration
 ```
 
