@@ -1,226 +1,226 @@
-# Integración Excel-PostgreSQL con xlwings
+# Integración Excel-PostgreSQL con VBA + ODBC
 
-## 📋 Objetivo del Proyecto
+## 📋 Índice
+1. [Objetivo del Proyecto](#objetivo-del-proyecto)
+2. [Prerrequisitos](#prerrequisitos)
+3. [Instalación Paso a Paso](#instalación-paso-a-paso)
+4. [Configuración de Excel](#configuración-de-excel)
+5. [Prueba de Funcionamiento](#prueba-de-funcionamiento)
+6. [Solución de Problemas](#solución-de-problemas)
+7. [Estructura del Proyecto](#estructura-del-proyecto)
+8. [Notas Adicionales](#notas-adicionales)
 
-Este es un proyecto de **prueba de concepto** que demuestra la integración entre Microsoft Excel y una base de datos PostgreSQL utilizando xlwings. El objetivo es permitir que los usuarios de Excel puedan ejecutar funciones personalizadas que consulten datos directamente desde la base de datos PostgreSQL.
+---
 
-### Funcionalidad Principal
-- **Función personalizada en Excel**: `get_stock_data()` que consulta el stock de productos desde PostgreSQL
-- **Integración transparente**: Los usuarios pueden usar la función directamente en las celdas de Excel
-- **Manejo de errores**: La función devuelve mensajes de error comprensibles en caso de problemas
+## 🎯 Objetivo del Proyecto
 
-## ⚠️ Problema Actual - Error de Acceso Denegado
+Este proyecto permite **conectar Excel directamente con PostgreSQL** usando **VBA + ODBC** sin necesidad de Python. La solución incluye:
 
-### Descripción del Error
-Al hacer clic en el botón **"Import Functions"** en la cinta de xlwings de Excel, se recibe el mensaje:
-```
-Acceso denegado
-```
+- **Función personalizada**: `GetStockData()` que consulta stock desde PostgreSQL
+- **Conexión persistente**: Reutiliza la conexión para mejorar rendimiento
+- **Sin permisos de administrador**: Funciona con políticas corporativas restrictivas
+- **Fácil instalación**: Pasos simples para cualquier usuario
 
-### Causa del Problema
-Este error se debe a:
-1. **Políticas corporativas** que restringen la ejecución de scripts
-2. **Falta de permisos de administrador** para registrar el complemento de xlwings
-3. **Configuración de seguridad de Windows** que bloquea la ejecución de archivos .dll
-
-### Soluciones Recomendadas
-1. **Ejecutar Excel como Administrador** (solución más común)
-2. **Configurar políticas de grupo** para permitir xlwings
-3. **Registrar manualmente el complemento** usando el registro de Windows
+---
 
 ## 🛠️ Prerrequisitos
 
-Antes de comenzar, asegúrate de tener instalado:
-
 ### Software Requerido
-- **Python 3.8 o superior** ([Descargar Python](https://www.python.org/downloads/))
 - **Microsoft Excel** (2016 o superior)
 - **Git** ([Descargar Git](https://git-scm.com/downloads))
+- **Permisos de administrador** (solo para instalar driver ODBC)
 
 ### Verificar Instalaciones
 Abre la terminal (cmd o PowerShell) y ejecuta:
 ```bash
-python --version
-pip --version
 git --version
 ```
 
-Si alguno de estos comandos no funciona, instala el software correspondiente.
+---
 
-## 📥 Instalación del Proyecto
+## 📥 Instalación Paso a Paso
 
 ### Paso 1: Clonar el Repositorio
 ```bash
-# Navegar al directorio donde quieres instalar el proyecto
+# Navegar al directorio deseado
 cd C:\Users\[tu_usuario]\Documents
 
 # Clonar el repositorio
-git clone git@github.com:rjardi/py-xls-integration.git
+git clone https://github.com/rjardi/py-xls-integration.git
 cd py-xls-integration
 ```
 
-### Paso 2: Crear Entorno Virtual
-```bash
-# Crear entorno virtual
-python -m venv venv
+### Paso 2: Instalar Driver ODBC PostgreSQL
 
-# Activar entorno virtual (Windows)
-venv\Scripts\activate
-
-# Verificar que el entorno está activo (debería mostrar (venv) al inicio)
-```
-
-### Paso 3: Instalar Dependencias
-```bash
-# Asegúrate de que el entorno virtual esté activo
-pip install -r requirements.txt
-```
-
-### Paso 4: Configurar Variables de Entorno
-1. **Crear archivo .env**:
-   ```bash
-   # Copiar el archivo de ejemplo
-   copy .env.example .env
-   ```
-
-2. **Editar el archivo .env** con tus datos de conexión:
-   ```env
-   DB_HOST_URL=tu_servidor_postgresql
-   DB_NAME=nombre_base_datos
-   DB_USER=tu_usuario
-   DB_PASSWORD=tu_contraseña
-   ```
-
-### Paso 5: Probar la Conexión
-```bash
-# Ejecutar script de prueba
-python test_connection.py
-```
-
-Si todo está correcto, deberías ver:
-```
-✓ Conexión exitosa a PostgreSQL
-✓ Función ejecutada correctamente
-```
-
-## 🔧 Configuración de xlwings
-
-### Paso 1: Registrar el Complemento
-1. **Cerrar Excel completamente**
-2. **Abrir terminal como Administrador**:
-   - Presiona `Windows + X`
-   - Selecciona "Windows PowerShell (Administrador)" o "Símbolo del sistema (Administrador)"
-
-3. **Navegar al proyecto y activar entorno virtual**:
-   ```bash
-   cd C:\ruta\a\tu\proyecto\py-xls-integration
-   venv\Scripts\activate
-   ```
-
-4. **Registrar xlwings**:
-   ```bash
-   xlwings addin install
-   ```
-
-### Paso 2: Configurar Excel
+#### 2.1 Verificar Arquitectura de Excel
 1. **Abrir Excel**
-2. **Ir a la pestaña "xlwings"** en la cinta
-3. **Hacer clic en "Import Functions"**
-4. **Si aparece error de acceso denegado**:
-   - Cerrar Excel
-   - Abrir Excel como Administrador
-   - Repetir el proceso
+2. **Ir a Archivo > Cuenta > Acerca de Excel**
+3. **Verificar si es "32-bit" o "64-bit"**
 
-### Paso 3: Probar la Función
-1. **Abrir el archivo** `excel_test.xlsm`
-2. **En una celda**, escribir:
+#### 2.2 Descargar Driver Correcto
+1. **Ir a**: [PostgreSQL ODBC Releases](https://www.postgresql.org/ftp/odbc/releases/)
+2. **Descargar la última versión** (ej: `REL-17_00_0006`)
+3. **Seleccionar archivo .msi según arquitectura**:
+   - **64-bit**: `psqlodbc-17.00.0006-x64.msi`
+   - **32-bit**: `psqlodbc-17.00.0006-x86.msi`
+
+#### 2.3 Instalar Driver
+1. **Ejecutar el archivo .msi como Administrador**
+2. **Seguir el asistente de instalación**
+3. **Verificar instalación**:
+   - Presionar `Windows + R`
+   - Escribir `odbcad32.exe`
+   - Verificar que aparece "PostgreSQL Unicode" en la lista
+
+### Paso 3: Crear Archivo de Configuración DSN
+
+#### 3.1 Crear archivo `postgresql.dsn`
+En la raíz del proyecto, crear archivo `postgresql.dsn` con este contenido:
+
+```ini
+[ODBC]
+DRIVER=PostgreSQL Unicode
+SERVER=tu_servidor_postgresql
+DATABASE=tu_base_datos
+UID=tu_usuario
+PWD=tu_contraseña
+PORT=5432
+SSLmode=require
+```
+
+#### 3.2 Reemplazar Valores
+- `tu_servidor_postgresql`: IP o nombre del servidor
+- `tu_base_datos`: Nombre de la base de datos
+- `tu_usuario`: Usuario de PostgreSQL
+- `tu_contraseña`: Contraseña del usuario
+
+---
+
+## 🔧 Configuración de Excel
+
+### Paso 1: Importar Código VBA
+1. **Abrir Excel**
+2. **Presionar `ALT + F11`** (abrir editor VBA)
+3. **En el menú**: `Archivo > Importar archivo`
+4. **Seleccionar**: `get_stock_data.vba` del proyecto
+5. **Cerrar el editor VBA**
+
+### Paso 2: Habilitar Macros
+1. **Guardar el archivo como `.xlsm`** (Excel con macros)
+2. **Si aparece advertencia de seguridad**: Hacer clic en "Habilitar contenido"
+
+---
+
+## ✅ Prueba de Funcionamiento
+
+### Prueba Básica
+1. **En cualquier celda de Excel**, escribir:
    ```
-   =get_stock_data("PDX", "BRAM", "22-09-2025")
+   =GetStockData("PDX", "BRAM", "22-09-2025")
    ```
-3. **Presionar Enter**
+2. **Presionar Enter**
+3. **Resultado esperado**: Número de stock o mensaje de error
+
+### Prueba de Conexión
+1. **En una celda**, escribir:
+   ```
+   =TestConnection()
+   ```
+2. **Resultado esperado**: "Conexión exitosa"
+
+### Prueba SSL
+1. **En una celda**, escribir:
+   ```
+   =TestConnectionSSL()
+   ```
+2. **Resultado esperado**: "Conexión SSL exitosa"
+
+---
 
 ## 🚨 Solución de Problemas
 
-### Error: "Acceso denegado" al importar funciones
+### Error: "No se encuentra el nombre del origen de datos"
+**Causa**: Driver ODBC no instalado correctamente
+**Solución**:
+1. Verificar que el driver aparece en `odbcad32.exe`
+2. Reinstalar driver con arquitectura correcta
+3. Reiniciar Excel
 
-#### Solución 1: Ejecutar como Administrador
-1. Cerrar Excel
-2. Hacer clic derecho en Excel
-3. Seleccionar "Ejecutar como administrador"
-4. Repetir el proceso de importación
+### Error: "could not translate host name"
+**Causa**: Servidor no accesible
+**Solución**:
+1. Verificar conexión a internet/VPN
+2. Comprobar IP del servidor en `postgresql.dsn`
+3. Probar con IP en lugar de nombre
 
-#### Solución 2: Registrar manualmente
-```bash
-# En terminal como administrador
-cd C:\ruta\a\tu\proyecto\py-xls-integration
-venv\Scripts\activate
-xlwings addin install --force
-```
+### Error: "failed no pg_hba.conf entry"
+**Causa**: Problema de autenticación PostgreSQL
+**Solución**:
+1. Verificar usuario y contraseña en `postgresql.dsn`
+2. Asegurar que `SSLmode=require` está presente
+3. Contactar administrador de base de datos
 
-#### Solución 3: Verificar políticas de grupo
-1. Presionar `Windows + R`
-2. Escribir `gpedit.msc`
-3. Navegar a: `Configuración del equipo > Plantillas administrativas > Sistema`
-4. Buscar "Ejecutar scripts de Windows PowerShell"
-5. Configurar como "Habilitado" o "No configurado"
+### Error: "Object variable not set"
+**Causa**: Problema en código VBA
+**Solución**:
+1. Verificar que el archivo `postgresql.dsn` existe
+2. Comprobar que la ruta es correcta
+3. Revisar permisos de lectura del archivo
 
-### Error: "No se puede conectar a la base de datos"
-1. Verificar que el archivo `.env` existe y tiene los datos correctos
-2. Probar la conexión con `python test_connection.py`
-3. Verificar que el servidor PostgreSQL esté accesible
-
-### Error: "Módulo no encontrado"
-1. Verificar que el entorno virtual esté activo
-2. Reinstalar dependencias: `pip install -r requirements.txt`
+---
 
 ## 📁 Estructura del Proyecto
 
 ```
 py-xls-integration/
-├── README.md                 # Este archivo
-├── requirements.txt          # Dependencias de Python
-├── .env.example             # Plantilla de variables de entorno
-├── .env                     # Variables de entorno (crear manualmente)
-├── get_stock_data.py        # Función principal de xlwings
-├── test_connection.py       # Script de prueba de conexión
-├── excel_test.xlsm          # Archivo de Excel de prueba
-└── venv/                    # Entorno virtual de Python
+├── README.md                    # Este archivo
+├── get_stock_data.vba          # Código VBA principal
+├── postgresql.dsn              # Configuración ODBC (crear manualmente)
+├── postgresql.dsn.example      # Plantilla de configuración
+├── odbc_driver/                # Driver ODBC portable (opcional)
+│   ├── psqlodbc35w.dll
+│   └── libpq.dll
+└── python/                     # Solución Python (paralizada)
+    ├── get_stock_data.py
+    ├── test_connection.py
+    └── requirements.txt
 ```
-
-## 🔍 Archivos del Proyecto
-
-### `get_stock_data.py`
-- Contiene la función `get_stock_data()` que se ejecuta en Excel
-- Se conecta a PostgreSQL y ejecuta la función `api_xls.f_pla_qty_stock()`
-- Maneja errores y devuelve resultados a Excel
-
-### `test_connection.py`
-- Script de prueba para verificar la conexión a la base de datos
-- Prueba la función de stock con parámetros de ejemplo
-- Útil para diagnosticar problemas antes de usar Excel
-
-### `excel_test.xlsm`
-- Archivo de Excel con macros habilitadas
-- Contiene ejemplos de uso de la función `get_stock_data()`
-
-## 📞 Soporte
-
-Si encuentras problemas:
-
-1. **Verificar logs**: Revisar la salida de `test_connection.py`
-2. **Comprobar permisos**: Asegurar que Excel se ejecuta con permisos adecuados
-3. **Revisar configuración**: Verificar que el archivo `.env` esté correctamente configurado
-4. **Contactar administrador**: Para problemas de políticas corporativas
-
-## 📝 Notas Importantes
-
-- **Seguridad**: Nunca compartas el archivo `.env` ya que contiene credenciales
-- **Backup**: Mantén una copia de seguridad de tu configuración
-- **Actualizaciones**: Actualiza las dependencias regularmente con `pip install -r requirements.txt --upgrade`
-- **Logs**: Los errores se muestran directamente en las celdas de Excel
 
 ---
 
-**Versión**: 1.0  
+## 📝 Notas Adicionales
+
+### Funciones Disponibles
+- `GetStockData(empavi, erpcodave, fecha)`: Función principal
+- `TestConnection()`: Prueba conexión básica
+- `TestConnectionSSL()`: Prueba conexión con SSL
+- `InitializeConnection()`: Inicializa conexión persistente
+- `CloseGlobalConnection()`: Cierra conexión global
+
+### Optimizaciones Incluidas
+- **Conexión persistente**: Reutiliza la misma conexión
+- **Manejo de errores**: Mensajes claros en caso de problemas
+- **Debug**: Usa `Debug.Print` para ver logs en ventana inmediata
+
+### Seguridad
+- **Archivo DSN**: Contiene credenciales, mantener privado
+- **SSL**: Conexión encriptada con `SSLmode=require`
+- **Sin hardcoding**: Credenciales en archivo externo
+
+---
+
+## 🔄 Alternativa Python (Paralizada)
+
+Este repositorio también contiene una solución usando **Python + xlwings** en la carpeta `python/`, pero está **paralizada** debido a problemas de permisos corporativos. El error "Acceso denegado" al importar funciones desde el add-in de xlwings impide su uso en entornos con políticas de seguridad restrictivas.
+
+**Ventajas de la solución VBA actual**:
+- ✅ No requiere permisos de administrador para funcionar
+- ✅ No depende de Python instalado
+- ✅ Funciona con políticas corporativas restrictivas
+- ✅ Instalación más simple para usuarios finales
+
+---
+
+**Versión**: 2.0  
 **Última actualización**: Enero 2025  
-**Compatibilidad**: Excel 2016+, Python 3.8+
+**Compatibilidad**: Excel 2016+, Windows 10+

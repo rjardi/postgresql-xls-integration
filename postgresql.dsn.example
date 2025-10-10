@@ -1,0 +1,8 @@
+[ODBC]
+DRIVER=PostgreSQL Unicode
+SERVER=tu_servidor_postgresql
+DATABASE=tu_base_datos
+UID=tu_usuario
+PWD=tu_contraseña
+PORT=5432
+SSLmode=require
