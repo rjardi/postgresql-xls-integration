@@ -173,3 +173,201 @@ ErrorHandler:
     Debug.Print "TestConnectionSSL - Error SSL: " & Err.Description
 End Function
 
+Private Function ToSql(v As Variant) As String
+    If IsNull(v) Or IsEmpty(v) Then
+        ToSql = "NULL"
+    ElseIf IsDate(v) Then
+        ToSql = "'" & Format$(CDate(v), "yyyy-mm-dd") & "'"
+    ElseIf IsNumeric(v) Then
+        ToSql = Replace(CStr(v), ",", ".")
+    Else
+        ToSql = "'" & Replace(CStr(v), "'", "''") & "'"
+    End If
+End Function
+
+' =============================================================================
+' NUEVAS FUNCIONES PARA OBTENER DATOS DE STOCK
+' =============================================================================
+
+ ' Función auxiliar reutilizable para llamar a api_xls.f_pla_get_data_stock
+ ' Firma fija con los 10 parámetros en orden exacto requerido por PostgreSQL
+Private Function ExecuteGetDataStock( _
+    ByVal p_unidad_operacional As Variant, _
+    ByVal p_peticion As Variant, _
+    ByVal p_producto_venta As Variant, _
+    ByVal p_fecha_dato As Variant, _
+    ByVal p_fch_inicial As Variant, _
+    ByVal p_fch_final As Variant, _
+    ByVal p_DiaVida_inicial As Variant, _
+    ByVal p_DiaVida_final As Variant, _
+    ByVal p_peso_inicial As Variant, _
+    ByVal p_peso_final As Variant) As Variant
+    Dim conn As Object
+    Dim cmd As Object
+    Dim rs As Object
+    Dim sqlQuery As String
+    
+    ' Inicializar variables
+    Set cmd = Nothing
+    Set rs = Nothing
+    
+    ' Query SQL con los 10 parámetros fijos
+    sqlQuery = "SELECT api_xls.f_pla_get_data_stock(?, ?, ?, ?, ?, ?, ?, ?, ?, ?)"
+    
+    On Error GoTo ErrorHandler
+    
+    ' Obtener conexión global (reutiliza la existente)
+    Set conn = GetGlobalConnection()
+    If conn Is Nothing Then
+        ExecuteGetDataStock = "Error: No se pudo establecer conexión"
+        Debug.Print "ExecuteGetDataStock - Error: No se pudo establecer conexión"
+        Exit Function
+    End If
+    
+    ' Crear comando
+    Set cmd = CreateObject("ADODB.Command")
+    Set cmd.ActiveConnection = conn
+    cmd.CommandText = sqlQuery
+    cmd.CommandType = 1 ' adCmdText
+    
+    ' Agregar los 10 parámetros en el orden exacto
+    cmd.Parameters.Append cmd.CreateParameter("p_unidad_operacional", 200, 1, 255, p_unidad_operacional) ' adVarChar
+    cmd.Parameters.Append cmd.CreateParameter("p_peticion", 200, 1, 255, p_peticion) ' adVarChar
+    cmd.Parameters.Append cmd.CreateParameter("p_producto_venta", 200, 1, 255, p_producto_venta) ' adVarChar
+
+    ' Fechas como adDBDate (133)
+    cmd.Parameters.Append cmd.CreateParameter("p_fecha_dato", 133, 1, 0, p_fecha_dato) ' adDBDate
+    cmd.Parameters.Append cmd.CreateParameter("p_fch_inicial", 133, 1, 0, p_fch_inicial) ' adDBDate
+    cmd.Parameters.Append cmd.CreateParameter("p_fch_final", 133, 1, 0, p_fch_final) ' adDBDate
+
+    ' Enteros
+    cmd.Parameters.Append cmd.CreateParameter("p_DiaVida_inicial", 3, 1, 0, p_DiaVida_inicial) ' adInteger
+    cmd.Parameters.Append cmd.CreateParameter("p_DiaVida_final", 3, 1, 0, p_DiaVida_final) ' adInteger
+
+    ' Decimales como adDouble (5) para evitar redondeos/escala
+    cmd.Parameters.Append cmd.CreateParameter("p_peso_inicial", 5, 1, 0, p_peso_inicial) ' adDouble
+    cmd.Parameters.Append cmd.CreateParameter("p_peso_final", 5, 1, 0, p_peso_final) ' adDouble
+    
+    ' Ejecutar query
+    Set rs = cmd.Execute
+    
+    Dim debugSql As String
+    debugSql = "SELECT api_xls.f_pla_get_data_stock(" & _
+            ToSql(p_unidad_operacional) & ", " & _
+            ToSql(p_peticion) & ", " & _
+            ToSql(p_producto_venta) & ", " & _
+            ToSql(p_fecha_dato) & ", " & _
+            ToSql(p_fch_inicial) & ", " & _
+            ToSql(p_fch_final) & ", " & _
+            ToSql(p_DiaVida_inicial) & ", " & _
+            ToSql(p_DiaVida_final) & ", " & _
+            ToSql(p_peso_inicial) & ", " & _
+            ToSql(p_peso_final) & ")"
+    Debug.Print "SQL DEBUG => "; debugSql
+    
+    ' Obtener resultado
+    If Not rs.EOF Then
+        ExecuteGetDataStock = rs.Fields(0).Value
+        Debug.Print "ExecuteGetDataStock - Resultado: " & ExecuteGetDataStock
+    Else
+        ExecuteGetDataStock = "No data found"
+        Debug.Print "ExecuteGetDataStock - No data found"
+    End If
+    
+    ' Limpiar solo el recordset y comando (NO la conexión)
+    On Error Resume Next
+    If Not rs Is Nothing Then rs.Close
+    Set rs = Nothing
+    Set cmd = Nothing
+    On Error GoTo 0
+    
+    Exit Function
+    
+ErrorHandler:
+    ExecuteGetDataStock = "Error: " & Err.Description & " (Error #" & Err.Number & ")"
+    Debug.Print "ExecuteGetDataStock - Error: " & Err.Description & " (Error #" & Err.Number & ")"
+    ' Limpiar en caso de error (NO la conexión global)
+    On Error Resume Next
+    If Not rs Is Nothing Then rs.Close
+    Set rs = Nothing
+    Set cmd = Nothing
+    On Error GoTo 0
+End Function
+
+' Función GetStockAvi - Obtiene datos de stock con parámetros específicos
+Public Function GetStockAvi(p_unidad_operacional As String, p_peticion As String, p_producto_venta As String, p_fecha_dato As Date, p_DiaVida_inicial As Integer, p_DiaVida_final As Integer, p_peso_inicial As Double, p_peso_final As Double) As Variant
+    On Error GoTo ErrorHandler
+    Dim fechaHoy As Date: fechaHoy = Date
+    
+    ' Mapear a los 10 parámetros: usar fecha_dato y defaults para rango fechas
+    GetStockAvi = ExecuteGetDataStock( _
+        p_unidad_operacional, _
+        p_peticion, _
+        p_producto_venta, _
+        p_fecha_dato, _
+        fechaHoy, _
+        fechaHoy, _
+        p_DiaVida_inicial, _
+        p_DiaVida_final, _
+        p_peso_inicial, _
+        p_peso_final)
+    
+    Exit Function
+    
+ErrorHandler:
+    GetStockAvi = "Error: " & Err.Description & " (Error #" & Err.Number & ")"
+    Debug.Print "GetStockAvi - Error: " & Err.Description & " (Error #" & Err.Number & ")"
+End Function
+
+' Función GetEntradaAvi - Obtiene datos de entradas con parámetros específicos
+Public Function GetEntradaAvi(p_unidad_operacional As String, p_peticion As String, p_producto_venta As String, p_fch_inicial As Date, p_fch_final As Date) As Variant
+    On Error GoTo ErrorHandler
+    Dim fechaHoy As Date: fechaHoy = Date
+    
+    ' Mapear a los 10 parámetros: usar rango fechas y defaults para resto
+    GetEntradaAvi = ExecuteGetDataStock( _
+        p_unidad_operacional, _
+        p_peticion, _
+        p_producto_venta, _
+        fechaHoy, _
+        p_fch_inicial, _
+        p_fch_final, _
+        0, _
+        9999, _
+        0, _
+        99.999)
+    
+    Exit Function
+    
+ErrorHandler:
+    GetEntradaAvi = "Error: " & Err.Description & " (Error #" & Err.Number & ")"
+    Debug.Print "GetEntradaAvi - Error: " & Err.Description & " (Error #" & Err.Number & ")"
+End Function
+
+' Función GetSalidasAvi - Obtiene datos de salidas con parámetros específicos
+Public Function GetSalidasAvi(p_unidad_operacional As String, p_peticion As String, p_producto_venta As String, p_fch_inicial As Date, p_fch_final As Date, p_DiaVida_inicial As Integer, p_DiaVida_final As Integer, p_peso_inicial As Double, p_peso_final As Double) As Variant
+    On Error GoTo ErrorHandler
+    Dim fechaHoy As Date: fechaHoy = Date
+    
+    ' Mapear a los 10 parámetros: usar rango fechas y filtros adicionales
+    GetSalidasAvi = ExecuteGetDataStock( _
+        p_unidad_operacional, _
+        p_peticion, _
+        p_producto_venta, _
+        fechaHoy, _
+        p_fch_inicial, _
+        p_fch_final, _
+        p_DiaVida_inicial, _
+        p_DiaVida_final, _
+        p_peso_inicial, _
+        p_peso_final)
+    
+    Exit Function
+    
+ErrorHandler:
+    GetSalidasAvi = "Error: " & Err.Description & " (Error #" & Err.Number & ")"
+    Debug.Print "GetSalidasAvi - Error: " & Err.Description & " (Error #" & Err.Number & ")"
+End Function
+
+
+
