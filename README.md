@@ -16,7 +16,7 @@
 
 Este proyecto permite **conectar Excel directamente con PostgreSQL** usando **VBA + ODBC** sin necesidad de Python. La solución incluye:
 
-- **Función personalizada**: `GetStockData()` que consulta stock desde PostgreSQL
+- **Funciones personalizadas** para consultar datos de stock, entradas y salidas desde PostgreSQL
 - **Conexión persistente**: Reutiliza la conexión para mejorar rendimiento
 - **Sin permisos de administrador**: Funciona con políticas corporativas restrictivas
 - **Fácil instalación**: Pasos simples para cualquier usuario
@@ -113,13 +113,40 @@ SSLmode=require
 
 ## ✅ Prueba de Funcionamiento
 
-### Prueba Básica
+### Prueba Histórica (GetStockData)
 1. **En cualquier celda de Excel**, escribir:
    ```
-   =GetStockData("PDX", "BRAM", "22-09-2025")
+   =GetStockData("PDX";"BRAM";"2025-09-22")
    ```
-2. **Presionar Enter**
-3. **Resultado esperado**: Número de stock o mensaje de error
+2. **Resultado**: Número de stock o mensaje de error
+
+### Prueba Básica (Stock por fecha exacta)
+1. **En cualquier celda de Excel**, escribir:
+   ```
+   =GetStockAvi("PDX";"STOCK_QTY";"BRAM";"2025-10-10";0;999;0;99,999)
+   ```
+2. **Resultado**: Cantidad (u otro valor) devuelto por la función SQL `api_xls.f_pla_get_data_stock`
+
+### Prueba de Entradas (rango de fechas)
+1. **En una celda**, escribir:
+   ```
+   =GetEntradaAvi("PDX";"ENTRADAS_QTY";"BRAM";"2025-10-01";"2025-10-09")
+   ```
+2. **Resultado**: Valor calculado para entradas en el rango
+
+### Prueba de Salidas (rango + filtros)
+1. **En una celda**, escribir:
+   ```
+   =GetSalidasAvi("PDX";"SALIDAS_QTY";"BRAM";"2025-10-01";"2025-10-09";0;999;0;99,999)
+   ```
+2. **Resultado**: Valor calculado para salidas con los filtros indicados
+
+### Tip: Forzar recálculo de fórmulas en Excel
+Si las fórmulas ya fueron calculadas y quieres actualizar los resultados, presiona:
+```
+Ctrl + Alt + F9
+```
+Esto fuerza el recálculo completo del libro.
 
 ### Prueba de Conexión
 1. **En una celda**, escribir:
@@ -191,7 +218,10 @@ py-xls-integration/
 ## 📝 Notas Adicionales
 
 ### Funciones Disponibles
-- `GetStockData(empavi, erpcodave, fecha)`: Función principal
+- `GetStockData(empavi, erpcodave, fecha)`: Función histórica para pruebas
+- `GetStockAvi(unidad_operacional, peticion, producto_venta, fecha_dato, DiaVida_inicial, DiaVida_final, peso_inicial, peso_final)`
+- `GetEntradaAvi(unidad_operacional, peticion, producto_venta, fch_inicial, fch_final)`
+- `GetSalidasAvi(unidad_operacional, peticion, producto_venta, fch_inicial, fch_final, DiaVida_inicial, DiaVida_final, peso_inicial, peso_final)`
 - `TestConnection()`: Prueba conexión básica
 - `TestConnectionSSL()`: Prueba conexión con SSL
 - `InitializeConnection()`: Inicializa conexión persistente
