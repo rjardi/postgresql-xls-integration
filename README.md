@@ -72,27 +72,38 @@ cd py-xls-integration
    - Escribir `odbcad32.exe`
    - Verificar que aparece "PostgreSQL Unicode" en la lista
 
-### Paso 3: Crear Archivo de Configuración DSN
+### Paso 3: Configurar DSN de Usuario en Windows
 
-#### 3.1 Crear archivo `postgresql.dsn`
-En la raíz del proyecto, crear archivo `postgresql.dsn` con este contenido:
+#### 3.1 Abrir Administrador de Origen de Datos ODBC
+1. **Presionar `Windows + R`**
+2. **Escribir**: `odbcad32.exe`
+3. **Presionar Enter**
+4. **Seleccionar pestaña "DSN de usuario"** (User DSN)
 
-```ini
-[ODBC]
-DRIVER=PostgreSQL Unicode
-SERVER=tu_servidor_postgresql
-DATABASE=tu_base_datos
-UID=tu_usuario
-PWD=tu_contraseña
-PORT=5432
-SSLmode=require
-```
+#### 3.2 Crear Nuevo DSN
+1. **Clic en "Agregar"**
+2. **Seleccionar "PostgreSQL Unicode"** de la lista
+3. **Clic en "Finalizar"**
 
-#### 3.2 Reemplazar Valores
-- `tu_servidor_postgresql`: IP o nombre del servidor
-- `tu_base_datos`: Nombre de la base de datos
-- `tu_usuario`: Usuario de PostgreSQL
-- `tu_contraseña`: Contraseña del usuario
+#### 3.3 Configurar Parámetros de Conexión
+En la ventana de configuración, completar los siguientes campos:
+
+| Campo | Valor | Descripción |
+|-------|-------|-------------|
+| **Data Source** | `PostgreSQL35W` | Nombre del DSN (puedes cambiarlo) |
+| **Server** | `tu_servidor_postgresql` | IP o nombre del servidor PostgreSQL |
+| **Port** | `5432` | Puerto de PostgreSQL (por defecto) |
+| **Database** | `tu_base_datos` | Nombre de la base de datos |
+| **Username** | `tu_usuario` | Usuario de PostgreSQL |
+| **Password** | `tu_contraseña` | Contraseña del usuario |
+| **SSLMode** | `require` | Modo SSL requerido
+
+#### 3.5 Guardar Configuración
+1. **Clic en "OK"** para guardar
+2. **Verificar** que aparece `PostgreSQL35W` en la lista de DSN de usuario
+3. **Cerrar** el Administrador ODBC
+
+> **Nota**: No necesitas permisos de administrador para crear DSN de usuario, solo para instalar el driver ODBC.
 
 ---
 
@@ -167,32 +178,34 @@ Esto fuerza el recálculo completo del libro.
 ## 🚨 Solución de Problemas
 
 ### Error: "No se encuentra el nombre del origen de datos"
-**Causa**: Driver ODBC no instalado correctamente
+**Causa**: DSN no configurado correctamente
 **Solución**:
-1. Verificar que el driver aparece en `odbcad32.exe`
-2. Reinstalar driver con arquitectura correcta
-3. Reiniciar Excel
+1. Verificar que el DSN `PostgreSQL35W` existe en "DSN de usuario"
+2. Abrir `odbcad32.exe` y verificar configuración
+3. Reinstalar driver con arquitectura correcta si es necesario
+4. Reiniciar Excel
 
 ### Error: "could not translate host name"
 **Causa**: Servidor no accesible
 **Solución**:
 1. Verificar conexión a internet/VPN
-2. Comprobar IP del servidor en `postgresql.dsn`
-3. Probar con IP en lugar de nombre
+2. Comprobar IP del servidor en la configuración del DSN
+3. Probar con IP en lugar de nombre de servidor
+4. Usar "Test" en la configuración del DSN
 
 ### Error: "failed no pg_hba.conf entry"
 **Causa**: Problema de autenticación PostgreSQL
 **Solución**:
-1. Verificar usuario y contraseña en `postgresql.dsn`
-2. Asegurar que `SSLmode=require` está presente
+1. Verificar usuario y contraseña en la configuración del DSN
+2. Asegurar que "SSL Mode" está configurado como "Require"
 3. Contactar administrador de base de datos
 
 ### Error: "Object variable not set"
-**Causa**: Problema en código VBA
+**Causa**: Problema en código VBA o DSN
 **Solución**:
-1. Verificar que el archivo `postgresql.dsn` existe
-2. Comprobar que la ruta es correcta
-3. Revisar permisos de lectura del archivo
+1. Verificar que el DSN `PostgreSQL35W` está configurado correctamente
+2. Probar con `TestConnection()` para verificar conectividad
+3. Revisar que el nombre del DSN coincide exactamente en el código VBA
 
 ---
 
@@ -202,8 +215,8 @@ Esto fuerza el recálculo completo del libro.
 py-xls-integration/
 ├── README.md                    # Este archivo
 ├── get_stock_data.vba          # Código VBA principal
-├── postgresql.dsn              # Configuración ODBC (crear manualmente)
-├── postgresql.dsn.example      # Plantilla de configuración
+├── test_functions.vba          # Funciones de prueba
+├── postgresql.dsn.example      # Plantilla de configuración (referencia)
 ├── odbc_driver/                # Driver ODBC portable (opcional)
 │   ├── psqlodbc35w.dll
 │   └── libpq.dll
@@ -233,9 +246,10 @@ py-xls-integration/
 - **Debug**: Usa `Debug.Print` para ver logs en ventana inmediata
 
 ### Seguridad
-- **Archivo DSN**: Contiene credenciales, mantener privado
-- **SSL**: Conexión encriptada con `SSLmode=require`
-- **Sin hardcoding**: Credenciales en archivo externo
+- **DSN de Usuario**: Credenciales almacenadas de forma segura en Windows
+- **SSL**: Conexión encriptada configurada en el DSN
+- **Sin hardcoding**: Credenciales gestionadas por el sistema operativo
+- **Permisos de usuario**: No requiere permisos de administrador para funcionar
 
 ---
 

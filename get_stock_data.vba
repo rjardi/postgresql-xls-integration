@@ -12,7 +12,7 @@ Private Function GetGlobalConnection() As Object
     ' Si no hay conexión o está cerrada, crear nueva
     If GlobalConn Is Nothing Or Not IsGlobalConnOpen Then
         Set GlobalConn = CreateObject("ADODB.Connection")
-        GlobalConn.Open "FileDSN=" & ThisWorkbook.Path & "\postgresql.dsn"
+        GlobalConn.Open "DSN=PostgreSQL35W"
         IsGlobalConnOpen = True
         Debug.Print "GetGlobalConnection - Nueva conexión global creada"
     End If
@@ -128,14 +128,11 @@ End Function
 ' Función simple para probar conexión
 Public Function TestConnection() As String
     Dim conn As Object
-    Dim dsnPath As String
-    
-    dsnPath = ThisWorkbook.Path & "\postgresql.dsn"
     
     On Error GoTo ErrorHandler
     
     Set conn = CreateObject("ADODB.Connection")
-    conn.Open "FileDSN=" & dsnPath
+    conn.Open "DSN=PostgreSQL35W"
     
     TestConnection = "Conexión exitosa"
     Debug.Print "TestConnection - Conexión exitosa"
@@ -154,14 +151,11 @@ End Function
 ' Función para probar con SSL usando DSN
 Public Function TestConnectionSSL() As String
     Dim conn As Object
-    Dim dsnPath As String
-    
-    dsnPath = ThisWorkbook.Path & "\postgresql.dsn"
     
     On Error GoTo ErrorHandler
     
     Set conn = CreateObject("ADODB.Connection")
-    conn.Open "FileDSN=" & dsnPath
+    conn.Open "DSN=PostgreSQL35W"
     
     TestConnectionSSL = "Conexión SSL exitosa"
     Debug.Print "TestConnectionSSL - Conexión SSL exitosa"
@@ -179,6 +173,7 @@ Private Function ToSql(v As Variant) As String
     ElseIf IsDate(v) Then
         ToSql = "'" & Format$(CDate(v), "yyyy-mm-dd") & "'"
     ElseIf IsNumeric(v) Then
+        ' Convertir comas a puntos para números
         ToSql = Replace(CStr(v), ",", ".")
     Else
         ToSql = "'" & Replace(CStr(v), "'", "''") & "'"
@@ -234,20 +229,14 @@ Private Function ExecuteGetDataStock( _
     cmd.Parameters.Append cmd.CreateParameter("p_unidad_operacional", 200, 1, 255, p_unidad_operacional) ' adVarChar
     cmd.Parameters.Append cmd.CreateParameter("p_peticion", 200, 1, 255, p_peticion) ' adVarChar
     cmd.Parameters.Append cmd.CreateParameter("p_producto_venta", 200, 1, 255, p_producto_venta) ' adVarChar
-
-    ' Fechas como adDBDate (133)
-    cmd.Parameters.Append cmd.CreateParameter("p_fecha_dato", 133, 1, 0, p_fecha_dato) ' adDBDate
-    cmd.Parameters.Append cmd.CreateParameter("p_fch_inicial", 133, 1, 0, p_fch_inicial) ' adDBDate
-    cmd.Parameters.Append cmd.CreateParameter("p_fch_final", 133, 1, 0, p_fch_final) ' adDBDate
-
-    ' Enteros
-    cmd.Parameters.Append cmd.CreateParameter("p_DiaVida_inicial", 3, 1, 0, p_DiaVida_inicial) ' adInteger
-    cmd.Parameters.Append cmd.CreateParameter("p_DiaVida_final", 3, 1, 0, p_DiaVida_final) ' adInteger
-
-    ' Decimales como adDouble (5) para evitar redondeos/escala
-    cmd.Parameters.Append cmd.CreateParameter("p_peso_inicial", 5, 1, 0, p_peso_inicial) ' adDouble
-    cmd.Parameters.Append cmd.CreateParameter("p_peso_final", 5, 1, 0, p_peso_final) ' adDouble
-    
+    cmd.Parameters.Append cmd.CreateParameter("p_fecha_dato", 200, 1, 255, Format(p_fecha_dato, "yyyy-mm-dd")) ' adVarChar como string
+    cmd.Parameters.Append cmd.CreateParameter("p_fch_inicial", 200, 1, 255, Format(p_fch_inicial, "yyyy-mm-dd")) ' adVarChar como string
+    cmd.Parameters.Append cmd.CreateParameter("p_fch_final", 200, 1, 255, Format(p_fch_final, "yyyy-mm-dd")) ' adVarChar como string
+    cmd.Parameters.Append cmd.CreateParameter("p_DiaVida_inicial", 200, 1, 255, CStr(p_DiaVida_inicial)) ' adVarChar como string
+    cmd.Parameters.Append cmd.CreateParameter("p_DiaVida_final", 200, 1, 255, CStr(p_DiaVida_final)) ' adVarChar como string
+    cmd.Parameters.Append cmd.CreateParameter("p_peso_inicial", 200, 1, 255, Replace(CStr(p_peso_inicial), ",", ".")) ' adVarChar con punto decimal
+    cmd.Parameters.Append cmd.CreateParameter("p_peso_final", 200, 1, 255, Replace(CStr(p_peso_final), ",", ".")) ' adVarChar con punto decimal
+        
     ' Ejecutar query
     Set rs = cmd.Execute
     
@@ -268,6 +257,7 @@ Private Function ExecuteGetDataStock( _
     ' Obtener resultado
     If Not rs.EOF Then
         ExecuteGetDataStock = rs.Fields(0).Value
+        
         Debug.Print "ExecuteGetDataStock - Resultado: " & ExecuteGetDataStock
     Else
         ExecuteGetDataStock = "No data found"
