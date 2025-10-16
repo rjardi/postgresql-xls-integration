@@ -114,7 +114,8 @@ En la ventana de configuración, completar los siguientes campos:
 2. **Presionar `ALT + F11`** (abrir editor VBA)
 3. **En el menú**: `Archivo > Importar archivo`
 4. **Seleccionar**: `get_stock_data.vba` del proyecto
-5. **Cerrar el editor VBA**
+5. **Repetir el paso 4** para `set_stock_data.vba` (funciones de tabla)
+6. **Cerrar el editor VBA**
 
 ### Paso 2: Habilitar Macros
 1. **Guardar el archivo como `.xlsm`** (Excel con macros)
@@ -175,6 +176,46 @@ Esto fuerza el recálculo completo del libro.
 
 ---
 
+## 📊 Funciones de Tabla (Array 2D)
+
+Las funciones `GetSet*` devuelven **tablas completas** en lugar de valores únicos. Excel muestra automáticamente los datos en formato de tabla con encabezados y filas de datos.
+
+### Prueba de Tabla de Stock
+1. **En una celda**, escribir:
+   ```
+   =GetSetStockAvi("PDX";"GRJ_STOCK_QTY";"Broiler Amarillo";"2025-01-15";0;99;0;99,999)
+   ```
+2. **Resultado**: Tabla completa con encabezados (fecha_stock, articulo, peso_real, etc.) y filas de datos
+
+### Prueba de Tabla de Entradas
+1. **En una celda**, escribir:
+   ```
+   =GetSetEntradaAvi("PDX";"GRJ_ENTRADAS_QTY";"Broiler Amarillo";"2025-01-01";"2025-01-15")
+   ```
+2. **Resultado**: Tabla con datos de entradas en el rango de fechas
+
+### Prueba de Tabla de Salidas
+1. **En una celda**, escribir:
+   ```
+   =GetSetSalidasAvi("PDX";"GRJ_SALIDAS_QTY";"Broiler Amarillo";"2025-01-01";"2025-01-15";0;99;0;99,999)
+   ```
+2. **Resultado**: Tabla con datos de salidas con filtros aplicados
+
+### 💡 Convertir a Tabla de Excel
+Para aplicar formato de tabla profesional:
+1. **Seleccionar el rango** que contiene los datos
+2. **Presionar `Ctrl + T`** (Insertar > Tabla)
+3. **Marcar "Mi tabla tiene encabezados"**
+4. **Elegir estilo** y aceptar
+
+### ⚡ Ventajas de las Funciones de Tabla
+- ✅ **Sin restricciones de UDF**: Funcionan desde cualquier celda
+- ✅ **Formato automático**: Excel muestra la tabla inmediatamente
+- ✅ **Datos completos**: Acceso a todos los campos del JSON
+- ✅ **Fácil análisis**: Datos listos para gráficos y análisis
+
+---
+
 ## 🚨 Solución de Problemas
 
 ### Error: "No se encuentra el nombre del origen de datos"
@@ -214,7 +255,8 @@ Esto fuerza el recálculo completo del libro.
 ```
 py-xls-integration/
 ├── README.md                    # Este archivo
-├── get_stock_data.vba          # Código VBA principal
+├── get_stock_data.vba          # Código VBA principal (funciones de valor único)
+├── set_stock_data.vba          # Código VBA para tablas (funciones Array 2D)
 ├── test_functions.vba          # Funciones de prueba
 ├── postgresql.dsn.example      # Plantilla de configuración (referencia)
 ├── odbc_driver/                # Driver ODBC portable (opcional)
@@ -231,10 +273,19 @@ py-xls-integration/
 ## 📝 Notas Adicionales
 
 ### Funciones Disponibles
+
+#### 🔢 Funciones de Valor Único
 - `GetStockData(empavi, erpcodave, fecha)`: Función histórica para pruebas
 - `GetStockAvi(unidad_operacional, peticion, producto_venta, fecha_dato, DiaVida_inicial, DiaVida_final, peso_inicial, peso_final)`
 - `GetEntradaAvi(unidad_operacional, peticion, producto_venta, fch_inicial, fch_final)`
 - `GetSalidasAvi(unidad_operacional, peticion, producto_venta, fch_inicial, fch_final, DiaVida_inicial, DiaVida_final, peso_inicial, peso_final)`
+
+#### 📊 Funciones de Tabla (Array 2D)
+- `GetSetStockAvi(unidad_operacional, peticion, producto_venta, fecha_dato, DiaVida_inicial, DiaVida_final, peso_inicial, peso_final)`
+- `GetSetEntradaAvi(unidad_operacional, peticion, producto_venta, fch_inicial, fch_final)`
+- `GetSetSalidasAvi(unidad_operacional, peticion, producto_venta, fch_inicial, fch_final, DiaVida_inicial, DiaVida_final, peso_inicial, peso_final)`
+
+#### 🔧 Funciones de Utilidad
 - `TestConnection()`: Prueba conexión básica
 - `TestConnectionSSL()`: Prueba conexión con SSL
 - `InitializeConnection()`: Inicializa conexión persistente
