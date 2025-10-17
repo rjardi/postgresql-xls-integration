@@ -493,6 +493,89 @@ ErrorHandler:
     On Error GoTo 0
 End Function
 
+' Función auxiliar para detectar si un valor parece ser numérico
+Private Function IsNumericValue(value As String) As Boolean
+    On Error GoTo ErrorHandler
+    
+    value = Trim(value)
+    
+    ' Casos especiales
+    If value = "" Or LCase(value) = "null" Then
+        IsNumericValue = False
+        Exit Function
+    End If
+    
+    ' Verificar si contiene solo dígitos, punto, coma y signos
+    Dim i As Integer
+    Dim char As String
+    Dim hasDigit As Boolean
+    Dim hasDecimal As Boolean
+    
+    hasDigit = False
+    hasDecimal = False
+    
+    For i = 1 To Len(value)
+        char = Mid(value, i, 1)
+        
+        If char >= "0" And char <= "9" Then
+            hasDigit = True
+        ElseIf char = "." Or char = "," Then
+            If hasDecimal Then ' Ya tiene un separador decimal
+                IsNumericValue = False
+                Exit Function
+            End If
+            hasDecimal = True
+        ElseIf char = "-" And i = 1 Then ' Signo negativo al inicio
+            ' Permitir
+        Else
+            IsNumericValue = False
+            Exit Function
+        End If
+    Next i
+    
+    IsNumericValue = hasDigit
+    Exit Function
+    
+ErrorHandler:
+    IsNumericValue = False
+End Function
+
+' Función auxiliar para convertir string a número si es posible
+Private Function ConvertToNumberIfPossible(value As String) As Variant
+    On Error GoTo ErrorHandler
+    
+    ' Limpiar espacios
+    value = Trim(value)
+    
+    ' Si está vacío, devolver vacío
+    If value = "" Then
+        ConvertToNumberIfPossible = ""
+        Exit Function
+    End If
+    
+    ' Si es null, devolver vacío
+    If LCase(value) = "null" Then
+        ConvertToNumberIfPossible = ""
+        Exit Function
+    End If
+    
+    ' Reemplazar punto por coma para formato español
+    Dim spanishValue As String
+    spanishValue = Replace(value, ".", ",")
+    
+    ' Intentar convertir a número
+    Dim numericValue As Double
+    numericValue = CDbl(spanishValue)
+    
+    ' Si llegó aquí, es un número válido
+    ConvertToNumberIfPossible = numericValue
+    Exit Function
+    
+ErrorHandler:
+    ' Si no se puede convertir, devolver como texto
+    ConvertToNumberIfPossible = value
+End Function
+
 ' =============================================================================
 ' FUNCIÓN AUXILIAR REUTILIZABLE PARA DEVOLVER ARRAY 2D
 ' =============================================================================
@@ -576,7 +659,12 @@ Private Function ExecuteAndReturnArray2D( _
         
         For j = 0 To UBound(values)
             If j <= UBound(keys) Then
-                resultArray(i + 2, j + 1) = values(j)
+                ' CONVERSIÓN AUTOMÁTICA A NÚMERO
+                If IsNumericValue(values(j)) Then
+                    resultArray(i + 2, j + 1) = ConvertToNumberIfPossible(values(j))
+                Else
+                    resultArray(i + 2, j + 1) = values(j)
+                End If
             End If
         Next j
     Next i
