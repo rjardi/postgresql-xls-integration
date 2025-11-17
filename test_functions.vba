@@ -31,7 +31,7 @@ Private Sub Test_GetEntradaAvi_Debug()
     conn.Open "DSN=PostgreSQL35W"
     
     ' Query directa sin parámetros preparados
-    sqlQuery = "SELECT api_xls.f_pla_get_data_stock('TOR', 'ENTRADAS_QTY', 'BRAM', '2025-10-16', '2025-10-01', '2025-10-10', 0, 9999, 0, 99.999)"
+    sqlQuery = "SELECT api_xls.f_pla_get_data_stock_v1('TOR', 'ENTRADAS_QTY', 'BRAM', '2025-10-16', '2025-10-01', '2025-10-10', 0, 9999, 0, 99.999)"
     
     Set cmd = CreateObject("ADODB.Command")
     Set cmd.ActiveConnection = conn
@@ -77,7 +77,7 @@ Private Sub Test_TOR_Debug_Complete()
     conn.Open "DSN=PostgreSQL35W"
     
     ' Query directa con TOR
-    sqlQuery = "SELECT api_xls.f_pla_get_data_stock('TOR', 'ENTRADAS_QTY', 'BRAM', '2025-10-16', '2025-10-01', '2025-10-10', 0, 9999, 0, 99.999)"
+    sqlQuery = "SELECT api_xls.f_pla_get_data_stock_v1('TOR', 'ENTRADAS_QTY', 'BRAM', '2025-10-16', '2025-10-01', '2025-10-10', 0, 9999, 0, 99.999)"
     
     Debug.Print "=== QUERY TOR ==="
     Debug.Print sqlQuery
@@ -128,7 +128,7 @@ Sub Test_PDX_Debug_Complete()
     conn.Open "DSN=PostgreSQL35W"
     
     ' Query directa con PDX
-    sqlQuery = "SELECT api_xls.f_pla_get_data_stock('PDX', 'ENTRADAS_QTY', 'BRAM', '2025-10-16', '2025-10-01', '2025-10-10', 0, 9999, 0, 99.999)"
+    sqlQuery = "SELECT api_xls.f_pla_get_data_stock_v1('PDX', 'ENTRADAS_QTY', 'BRAM', '2025-10-16', '2025-10-01', '2025-10-10', 0, 9999, 0, 99.999)"
     
     Debug.Print "=== QUERY PDX ==="
     Debug.Print sqlQuery

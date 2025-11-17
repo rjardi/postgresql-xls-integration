@@ -114,8 +114,10 @@ En la ventana de configuración, completar los siguientes campos:
 2. **Presionar `ALT + F11`** (abrir editor VBA)
 3. **En el menú**: `Archivo > Importar archivo`
 4. **Seleccionar**: `get_stock_data.vba` del proyecto
-5. **Repetir el paso 4** para `set_stock_data.vba` (funciones de tabla)
-6. **Cerrar el editor VBA**
+5. **Repetir el paso 4** para `get_stock_data_sem.vba` (funciones semanales de valor único)
+6. **Repetir el paso 4** para `get_stock_data_grj.vba` (función por granja/lote/nave/art)
+7. **Repetir el paso 4** para `set_stock_data.vba` (funciones de tabla 2D)
+8. **Cerrar el editor VBA**
 
 ### Paso 2: Habilitar Macros
 1. **Guardar el archivo como `.xlsm`** (Excel con macros)
@@ -125,19 +127,12 @@ En la ventana de configuración, completar los siguientes campos:
 
 ## ✅ Prueba de Funcionamiento
 
-### Prueba Histórica (GetStockData)
-1. **En cualquier celda de Excel**, escribir:
-   ```
-   =GetStockData("PDX";"BRAM";"2025-09-22")
-   ```
-2. **Resultado**: Número de stock o mensaje de error
-
 ### Prueba Básica (Stock por fecha exacta)
 1. **En cualquier celda de Excel**, escribir:
    ```
    =GetStockAvi("PDX";"STOCK_QTY";"BRAM";"2025-10-10";0;999;0;99,999)
    ```
-2. **Resultado**: Cantidad (u otro valor) devuelto por la función SQL `api_xls.f_pla_get_data_stock`
+2. **Resultado**: Cantidad (u otro valor) devuelto por la función SQL `api_xls.f_pla_get_data_stock_v1`
 
 ### Prueba de Entradas (rango de fechas)
 1. **En una celda**, escribir:
@@ -152,6 +147,27 @@ En la ventana de configuración, completar los siguientes campos:
    =GetSalidasAvi("PDX";"SALIDAS_QTY";"BRAM";"2025-10-01";"2025-10-09";0;999;0;99,999)
    ```
 2. **Resultado**: Valor calculado para salidas con los filtros indicados
+
+### Pruebas Semanales (valor único)
+- **Stock semanal**
+  ```
+  =GetStockAviSem("PDX";"STOCK_QTY";"BRAM";2025;44;0;999;0;9999)
+  ```
+- **Entradas semanales**
+  ```
+  =GetEntradaAviSem("PDX";"ENTRADAS_QTY";"BRAM";2025;44)
+  ```
+- **Salidas semanales**
+  ```
+  =GetSalidasAviSem("PDX";"SALIDAS_QTY";"BRAM";2025;44;0;999;0;9999)
+  ```
+
+### Prueba por Granja/Lote/Nave/Artículo
+1. **En una celda**, escribir:
+   ```
+   =GetStockAviGrj("PDX";"STOCK_QTY";"2025-10-10";"20378T";"39";"4";"3001")
+   ```
+2. **Resultado**: Valor numérico de la petición para la granja y artículo indicados
 
 ### Tip: Forzar recálculo de fórmulas en Excel
 Si las fórmulas ya fueron calculadas y quieres actualizar los resultados, presiona:
@@ -200,6 +216,7 @@ Las funciones `GetSet*` devuelven **tablas completas** en lugar de valores únic
    =GetSetSalidasAvi("PDX";"GRJ_SALIDAS_QTY";"Broiler Amarillo";"2025-01-01";"2025-01-15";0;99;0;99,999)
    ```
 2. **Resultado**: Tabla con datos de salidas con filtros aplicados
+
 
 ### 💡 Convertir a Tabla de Excel
 Para aplicar formato de tabla profesional:
@@ -255,8 +272,10 @@ Para aplicar formato de tabla profesional:
 ```
 py-xls-integration/
 ├── README.md                    # Este archivo
-├── get_stock_data.vba          # Código VBA principal (funciones de valor único)
-├── set_stock_data.vba          # Código VBA para tablas (funciones Array 2D)
+├── get_stock_data.vba          # Funciones de valor único (fecha/rango)
+├── get_stock_data_sem.vba      # Funciones de valor único (semanas)
+├── get_stock_data_grj.vba      # Función de valor único por granja/lote/nave/art
+├── set_stock_data.vba          # Funciones de tabla (Array 2D)
 ├── test_functions.vba          # Funciones de prueba
 ├── postgresql.dsn.example      # Plantilla de configuración (referencia)
 ├── odbc_driver/                # Driver ODBC portable (opcional)
@@ -275,15 +294,38 @@ py-xls-integration/
 ### Funciones Disponibles
 
 #### 🔢 Funciones de Valor Único
-- `GetStockData(empavi, erpcodave, fecha)`: Función histórica para pruebas
 - `GetStockAvi(unidad_operacional, peticion, producto_venta, fecha_dato, DiaVida_inicial, DiaVida_final, peso_inicial, peso_final)`
+  - **PostgreSQL**: `api_xls.f_pla_get_data_stock_v1`
+  - **Devuelve**: Decimal (valor único)
 - `GetEntradaAvi(unidad_operacional, peticion, producto_venta, fch_inicial, fch_final)`
+  - **PostgreSQL**: `api_xls.f_pla_get_data_stock_v1`
+  - **Devuelve**: Decimal (valor único)
 - `GetSalidasAvi(unidad_operacional, peticion, producto_venta, fch_inicial, fch_final, DiaVida_inicial, DiaVida_final, peso_inicial, peso_final)`
+  - **PostgreSQL**: `api_xls.f_pla_get_data_stock_v1`
+  - **Devuelve**: Decimal (valor único)
+- `GetStockAviSem(unidad_operacional, peticion, producto_venta, año, semana, DiaVida_inicial, DiaVida_final, peso_inicial, peso_final)`
+  - **PostgreSQL**: `api_xls.f_pla_get_data_stock_sem_v1`
+  - **Devuelve**: Decimal (valor único semanal)
+- `GetEntradaAviSem(unidad_operacional, peticion, producto_venta, año, semana)`
+  - **PostgreSQL**: `api_xls.f_pla_get_data_stock_sem_v1`
+  - **Devuelve**: Decimal (valor único semanal)
+- `GetSalidasAviSem(unidad_operacional, peticion, producto_venta, año, semana, DiaVida_inicial, DiaVida_final, peso_inicial, peso_final)`
+  - **PostgreSQL**: `api_xls.f_pla_get_data_stock_sem_v1`
+  - **Devuelve**: Decimal (valor único semanal)
+- `GetStockAviGrj(unidad_operacional, peticion, fecha_dato, granja, lote, nave, articulo)`
+  - **PostgreSQL**: `api_xls.f_pla_get_data_stock_grj_v1`
+  - **Devuelve**: Decimal (valor único por granja/lote/nave/artículo)
 
 #### 📊 Funciones de Tabla (Array 2D)
 - `GetSetStockAvi(unidad_operacional, peticion, producto_venta, fecha_dato, DiaVida_inicial, DiaVida_final, peso_inicial, peso_final)`
+  - **PostgreSQL**: `api_xls.f_pla_get_set_data_stock_v1`
+  - **Devuelve**: Array 2D (tabla con múltiples filas y columnas)
 - `GetSetEntradaAvi(unidad_operacional, peticion, producto_venta, fch_inicial, fch_final)`
+  - **PostgreSQL**: `api_xls.f_pla_get_set_data_stock_v1`
+  - **Devuelve**: Array 2D (tabla con múltiples filas y columnas)
 - `GetSetSalidasAvi(unidad_operacional, peticion, producto_venta, fch_inicial, fch_final, DiaVida_inicial, DiaVida_final, peso_inicial, peso_final)`
+  - **PostgreSQL**: `api_xls.f_pla_get_set_data_stock_v1`
+  - **Devuelve**: Array 2D (tabla con múltiples filas y columnas)
 
 #### 🔧 Funciones de Utilidad
 - `TestConnection()`: Prueba conexión básica
@@ -291,10 +333,19 @@ py-xls-integration/
 - `InitializeConnection()`: Inicializa conexión persistente
 - `CloseGlobalConnection()`: Cierra conexión global
 
+### Funciones de PostgreSQL Utilizadas
+Todas las funciones de PostgreSQL utilizan el sufijo `_v1`:
+- `api_xls.f_pla_get_data_stock_v1`: Funciones diarias (valor único)
+- `api_xls.f_pla_get_data_stock_sem_v1`: Funciones semanales (valor único, sin parámetro `p_fecha_dato`)
+- `api_xls.f_pla_get_data_stock_grj_v1`: Función por granja/lote/nave/artículo (valor único)
+- `api_xls.f_pla_get_set_data_stock_v1`: Funciones de tabla (devuelve JSON parseado como Array 2D)
+
 ### Optimizaciones Incluidas
-- **Conexión persistente**: Reutiliza la misma conexión
+- **Conexión persistente**: Reutiliza la misma conexión para mejorar rendimiento
 - **Manejo de errores**: Mensajes claros en caso de problemas
 - **Debug**: Usa `Debug.Print` para ver logs en ventana inmediata
+- **Formato de fechas**: Todas las fechas se envían como strings en formato `yyyy-mm-dd` (adVarChar)
+- **Conversión numérica**: Los valores numéricos del JSON se convierten automáticamente de punto a coma decimal
 
 ### Seguridad
 - **DSN de Usuario**: Credenciales almacenadas de forma segura en Windows

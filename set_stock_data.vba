@@ -433,7 +433,7 @@ Private Function ExecuteGetSetDataStock( _
     Set rs = Nothing
     
     ' Query SQL con los 10 parámetros fijos
-    sqlQuery = "SELECT api_xls.f_pla_get_set_data_stock(?, ?, ?, ?, ?, ?, ?, ?, ?, ?)"
+    sqlQuery = "SELECT api_xls.f_pla_get_set_data_stock_v1(?, ?, ?, ?, ?, ?, ?, ?, ?, ?)"
     
     On Error GoTo ErrorHandler
     

@@ -37,72 +37,6 @@ Public Sub CloseGlobalConnection()
     On Error GoTo 0
 End Sub
 
-Public Function GetStockData(p_empavi As String, p_erpcodave As String, p_fch As String) As Variant
-    Dim conn As Object
-    Dim cmd As Object
-    Dim rs As Object
-    Dim sqlQuery As String
-    
-    ' Inicializar variables
-    Set cmd = Nothing
-    Set rs = Nothing
-    
-    ' Query SQL
-    sqlQuery = "SELECT api_xls.f_pla_qty_stock(?, ?, ?)"
-    
-    On Error GoTo ErrorHandler
-    
-    ' Obtener conexión global (reutiliza la existente)
-    Set conn = GetGlobalConnection()
-    If conn Is Nothing Then
-        GetStockData = "Error: No se pudo establecer conexión"
-        Debug.Print "GetStockData - Error: No se pudo establecer conexión"
-        Exit Function
-    End If
-    
-    ' Crear comando
-    Set cmd = CreateObject("ADODB.Command")
-    Set cmd.ActiveConnection = conn
-    cmd.CommandText = sqlQuery
-    cmd.CommandType = 1 ' adCmdText
-    
-    ' Agregar parámetros
-    cmd.Parameters.Append cmd.CreateParameter("p_empavi", 200, 1, 255, p_empavi)
-    cmd.Parameters.Append cmd.CreateParameter("p_erpcodave", 200, 1, 255, p_erpcodave)
-    cmd.Parameters.Append cmd.CreateParameter("p_fch", 200, 1, 255, p_fch)
-    
-    ' Ejecutar query
-    Set rs = cmd.Execute
-    
-    ' Obtener resultado
-    If Not rs.EOF Then
-        GetStockData = rs.Fields(0).Value
-        Debug.Print "GetStockData - Resultado: " & GetStockData
-    Else
-        GetStockData = "No data found"
-        Debug.Print "GetStockData - No data found"
-    End If
-    
-    ' Limpiar solo el recordset y comando (NO la conexión)
-    On Error Resume Next
-    If Not rs Is Nothing Then rs.Close
-    Set rs = Nothing
-    Set cmd = Nothing
-    On Error GoTo 0
-    
-    Exit Function
-    
-ErrorHandler:
-    GetStockData = "Error: " & Err.Description & " (Error #" & Err.Number & ")"
-    Debug.Print "GetStockData - Error: " & Err.Description & " (Error #" & Err.Number & ")"
-    ' Limpiar en caso de error (NO la conexión global)
-    On Error Resume Next
-    If Not rs Is Nothing Then rs.Close
-    Set rs = Nothing
-    Set cmd = Nothing
-    On Error GoTo 0
-End Function
-
 ' Función para inicializar conexión global
 Public Sub InitializeConnection()
     Dim conn As Object
@@ -207,7 +141,7 @@ Private Function ExecuteGetDataStock( _
     Set rs = Nothing
     
     ' Query SQL con los 10 parámetros fijos
-    sqlQuery = "SELECT api_xls.f_pla_get_data_stock(?, ?, ?, ?, ?, ?, ?, ?, ?, ?)"
+    sqlQuery = "SELECT api_xls.f_pla_get_data_stock_v1(?, ?, ?, ?, ?, ?, ?, ?, ?, ?)"
     
     On Error GoTo ErrorHandler
     
@@ -241,7 +175,7 @@ Private Function ExecuteGetDataStock( _
     Set rs = cmd.Execute
     
     Dim debugSql As String
-    debugSql = "SELECT api_xls.f_pla_get_data_stock(" & _
+    debugSql = "SELECT api_xls.f_pla_get_data_stock_v1(" & _
             ToSql(p_unidad_operacional) & ", " & _
             ToSql(p_peticion) & ", " & _
             ToSql(p_producto_venta) & ", " & _
