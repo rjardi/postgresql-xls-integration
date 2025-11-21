@@ -25,6 +25,19 @@ ErrorHandler:
     Debug.Print "GetGlobalConnection - Error: " & Err.Description
 End Function
 
+Private Function ToSql(v As Variant) As String
+    If IsNull(v) Or IsEmpty(v) Then
+        ToSql = "NULL"
+    ElseIf IsDate(v) Then
+        ToSql = "'" & Format$(CDate(v), "yyyy-mm-dd") & "'"
+    ElseIf IsNumeric(v) Then
+        ' Convertir comas a puntos para números
+        ToSql = Replace(CStr(v), ",", ".")
+    Else
+        ToSql = "'" & Replace(CStr(v), "'", "''") & "'"
+    End If
+End Function
+
 ' Función auxiliar para parsear JSON manualmente (versión mejorada y robusta)
 Private Function ParseJsonDataImproved(jsonString As String) As String
     On Error GoTo ErrorHandler
@@ -112,8 +125,19 @@ Private Function ExtractKeysImproved(jsonObject As String) As String()
         If keyEnd + 1 <= Len(jsonObject) Then
             char = Mid(jsonObject, keyEnd + 1, 1)
             If char = ":" Then
-                ' Agregar clave al array si hay espacio
-                If keyCount <= UBound(keys) Then
+                ' Verificar si la clave ya existe (eliminar duplicados)
+                Dim keyExists As Boolean
+                Dim i As Integer
+                keyExists = False
+                For i = 0 To keyCount - 1
+                    If keys(i) = key Then
+                        keyExists = True
+                        Exit For
+                    End If
+                Next i
+                
+                ' Agregar clave al array solo si no existe y hay espacio
+                If Not keyExists And keyCount <= UBound(keys) Then
                     keys(keyCount) = key
                     keyCount = keyCount + 1
                 End If
@@ -143,106 +167,145 @@ ErrorHandler:
 End Function
 
 ' Función auxiliar para extraer valores de un objeto JSON (versión mejorada)
-Private Function ExtractValuesImproved(jsonObject As String) As String()
+' Ahora extrae pares clave-valor y maneja duplicados correctamente
+Private Function ExtractValuesImproved(jsonObject As String, Optional keys As Variant = Empty) As String()
     On Error GoTo ErrorHandler
     
-    Dim values() As String
-    Dim valueCount As Integer
-    Dim pos As Long
-    Dim valueStart As Long
-    Dim valueEnd As Long
-    Dim value As String
-    Dim char As String
-    Dim inQuotes As Boolean
-    Dim bracketCount As Integer
+    ' Si no se proporcionan claves, extraerlas
+    Dim keysArray() As String
+    If IsEmpty(keys) Or Not IsArray(keys) Or UBound(keys) < 0 Then
+        keysArray = ExtractKeysImproved(jsonObject)
+    Else
+        keysArray = keys
+    End If
     
-    ' Inicializar array con tamaño suficiente
-    valueCount = 0
-    ReDim values(0 To 200) ' Array más grande para evitar desbordamientos
+    Dim values() As String
+    Dim valueDict() As String ' Diccionario simple: índice = posición de clave, valor = valor de la clave
+    Dim keyCount As Integer
+    Dim i As Integer
+    
+    ' Obtener el número de claves únicas
+    keyCount = UBound(keysArray) + 1
+    ReDim values(0 To keyCount - 1)
+    ReDim valueDict(0 To keyCount - 1)
+    
+    ' Inicializar arrays
+    For i = 0 To keyCount - 1
+        valueDict(i) = ""
+        values(i) = ""
+    Next i
     
     ' Limpiar el objeto JSON de espacios extra
     jsonObject = Trim(jsonObject)
     
-    ' Buscar todos los valores después de ":"
+    ' Extraer pares clave-valor y mapear valores a sus claves
+    Dim pos As Long
+    Dim keyStart As Long
+    Dim keyEnd As Long
+    Dim valueStart As Long
+    Dim valueEnd As Long
+    Dim key As String
+    Dim value As String
+    Dim char As String
+    Dim bracketCount As Integer
+    Dim keyIndex As Integer
+    
     pos = 1
     Do While pos <= Len(jsonObject) And pos > 0
-        ' Buscar ":"
-        valueStart = InStr(pos, jsonObject, ":")
-        If valueStart = 0 Then Exit Do
+        ' Buscar el patrón "clave":
+        keyStart = InStr(pos, jsonObject, """")
+        If keyStart = 0 Then Exit Do
         
-        pos = valueStart + 1
+        keyEnd = InStr(keyStart + 1, jsonObject, """")
+        If keyEnd = 0 Then Exit Do
         
-        ' Saltar espacios después de ":"
-        Do While pos <= Len(jsonObject) And Mid(jsonObject, pos, 1) = " "
-            pos = pos + 1
-        Loop
+        key = Mid(jsonObject, keyStart + 1, keyEnd - keyStart - 1)
         
-        If pos > Len(jsonObject) Then Exit Do
-        
-        ' Extraer el valor basado en el primer carácter
-        char = Mid(jsonObject, pos, 1)
-        
-        If char = """" Then
-            ' Valor string - buscar la comilla de cierre
-            valueStart = pos + 1
-            valueEnd = InStr(valueStart, jsonObject, """")
-            If valueEnd = 0 Then
-                ' Si no encuentra comilla de cierre, tomar hasta el final
-                value = Mid(jsonObject, valueStart)
-                pos = Len(jsonObject) + 1
-            Else
-                value = Mid(jsonObject, valueStart, valueEnd - valueStart)
-                pos = valueEnd + 1
-            End If
-        ElseIf char = "[" Then
-            ' Valor array - buscar el ] correspondiente
-            valueStart = pos
-            pos = pos + 1
-            bracketCount = 1
-            Do While pos <= Len(jsonObject) And bracketCount > 0
-                If Mid(jsonObject, pos, 1) = "[" Then
-                    bracketCount = bracketCount + 1
-                ElseIf Mid(jsonObject, pos, 1) = "]" Then
-                    bracketCount = bracketCount - 1
+        ' Verificar que después de la clave hay ":"
+        If keyEnd + 1 <= Len(jsonObject) Then
+            char = Mid(jsonObject, keyEnd + 1, 1)
+            If char = ":" Then
+                ' Encontrar el índice de esta clave en el array de claves
+                keyIndex = -1
+                For i = 0 To keyCount - 1
+                    If keysArray(i) = key Then
+                        keyIndex = i
+                        Exit For
+                    End If
+                Next i
+                
+                ' Si encontramos la clave, extraer su valor
+                If keyIndex >= 0 Then
+                    pos = keyEnd + 2 ' Después de ":
+                    
+                    ' Saltar espacios después de ":"
+                    Do While pos <= Len(jsonObject) And Mid(jsonObject, pos, 1) = " "
+                        pos = pos + 1
+                    Loop
+                    
+                    If pos <= Len(jsonObject) Then
+                        char = Mid(jsonObject, pos, 1)
+                        
+                        If char = """" Then
+                            ' Valor string - buscar la comilla de cierre
+                            valueStart = pos + 1
+                            valueEnd = InStr(valueStart, jsonObject, """")
+                            If valueEnd = 0 Then
+                                value = Mid(jsonObject, valueStart)
+                                pos = Len(jsonObject) + 1
+                            Else
+                                value = Mid(jsonObject, valueStart, valueEnd - valueStart)
+                                pos = valueEnd + 1
+                            End If
+                        ElseIf char = "[" Then
+                            ' Valor array - buscar el ] correspondiente
+                            valueStart = pos
+                            pos = pos + 1
+                            bracketCount = 1
+                            Do While pos <= Len(jsonObject) And bracketCount > 0
+                                If Mid(jsonObject, pos, 1) = "[" Then
+                                    bracketCount = bracketCount + 1
+                                ElseIf Mid(jsonObject, pos, 1) = "]" Then
+                                    bracketCount = bracketCount - 1
+                                End If
+                                pos = pos + 1
+                            Loop
+                            value = Mid(jsonObject, valueStart, pos - valueStart)
+                        Else
+                            ' Valor numérico, null, true, false - buscar hasta coma o }
+                            valueStart = pos
+                            Do While pos <= Len(jsonObject)
+                                char = Mid(jsonObject, pos, 1)
+                                If char = "," Or char = "}" Then Exit Do
+                                pos = pos + 1
+                            Loop
+                            value = Mid(jsonObject, valueStart, pos - valueStart)
+                        End If
+                        
+                        ' Limpiar el valor y asignarlo (esto sobrescribirá valores anteriores para claves duplicadas)
+                        value = Trim(value)
+                        valueDict(keyIndex) = value
+                    End If
                 End If
-                pos = pos + 1
-            Loop
-            value = Mid(jsonObject, valueStart, pos - valueStart)
-        Else
-            ' Valor numérico, null, true, false - buscar hasta coma o }
-            valueStart = pos
-            Do While pos <= Len(jsonObject)
-                char = Mid(jsonObject, pos, 1)
-                If char = "," Or char = "}" Then Exit Do
-                pos = pos + 1
-            Loop
-            value = Mid(jsonObject, valueStart, pos - valueStart)
+            End If
         End If
         
-        ' Limpiar el valor
-        value = Trim(value)
-        
-        ' Agregar al array si hay espacio
-        If valueCount <= UBound(values) Then
-            values(valueCount) = value
-            valueCount = valueCount + 1
-        End If
-        
-        ' Saltar coma y espacios
+        ' Saltar coma y espacios para buscar el siguiente par
         Do While pos <= Len(jsonObject)
             char = Mid(jsonObject, pos, 1)
-            If char <> "," And char <> " " Then Exit Do
+            If char <> "," And char <> " " And char <> "}" Then Exit Do
             pos = pos + 1
         Loop
     Loop
     
-    ' Redimensionar array al tamaño correcto
-    If valueCount > 0 Then
-        ReDim Preserve values(0 To valueCount - 1)
-    Else
-        ReDim values(0 To 0)
-        values(0) = "Sin valores"
-    End If
+    ' Copiar valores del diccionario al array de retorno en el orden correcto
+    For i = 0 To keyCount - 1
+        If valueDict(i) <> "" Then
+            values(i) = valueDict(i)
+        Else
+            values(i) = ""
+        End If
+    Next i
     
     ExtractValuesImproved = values
     Exit Function
@@ -394,8 +457,8 @@ Private Sub PaintTableInExcel(targetCell As Range, jsonData As String)
         ' Limpiar el objeto actual
         currentObject = CleanJsonObject(objects(i))
         
-        ' Obtener valores del objeto actual
-        values = ExtractValuesImproved(currentObject)
+        ' Obtener valores del objeto actual usando las claves ya extraídas
+        values = ExtractValuesImproved(currentObject, keys)
         
         ' Pintar SOLO LOS VALORES en la fila correspondiente (4 + i filas debajo de la celda objetivo)
         For j = 0 To UBound(values)
@@ -465,6 +528,20 @@ Private Function ExecuteGetSetDataStock( _
         
     ' Ejecutar query
     Set rs = cmd.Execute
+    
+    Dim debugSql As String
+    debugSql = "SELECT api_xls.f_pla_get_set_data_stock_v1(" & _
+            ToSql(p_unidad_operacional) & ", " & _
+            ToSql(p_peticion) & ", " & _
+            ToSql(p_producto_venta) & ", " & _
+            ToSql(p_fecha_dato) & ", " & _
+            ToSql(p_fch_inicial) & ", " & _
+            ToSql(p_fch_final) & ", " & _
+            ToSql(p_DiaVida_inicial) & ", " & _
+            ToSql(p_DiaVida_final) & ", " & _
+            ToSql(p_peso_inicial) & ", " & _
+            ToSql(p_peso_final) & ")"
+    Debug.Print "SQL DEBUG => "; debugSql
     
     ' Obtener resultado
     If Not rs.EOF Then
@@ -540,7 +617,56 @@ ErrorHandler:
     IsNumericValue = False
 End Function
 
+' Función auxiliar para contar decimales en un número
+Private Function CountDecimalPlaces(value As String) As Integer
+    On Error GoTo ErrorHandler
+    
+    Dim dotPos As Long
+    Dim commaPos As Long
+    Dim decimalSeparatorPos As Long
+    Dim decimalPart As String
+    
+    value = Trim(value)
+    
+    ' Buscar punto o coma como separador decimal
+    dotPos = InStr(value, ".")
+    commaPos = InStr(value, ",")
+    
+    ' Determinar qué separador usar (preferir punto si ambos existen)
+    If dotPos > 0 Then
+        decimalSeparatorPos = dotPos
+        decimalPart = Mid(value, dotPos + 1)
+    ElseIf commaPos > 0 Then
+        decimalSeparatorPos = commaPos
+        decimalPart = Mid(value, commaPos + 1)
+    Else
+        CountDecimalPlaces = 0
+        Exit Function
+    End If
+    
+    ' Contar decimales (eliminar ceros a la derecha)
+    If Len(decimalPart) > 0 Then
+        ' Encontrar el último dígito significativo
+        Dim i As Integer
+        For i = Len(decimalPart) To 1 Step -1
+            If Mid(decimalPart, i, 1) <> "0" Then
+                CountDecimalPlaces = i
+                Exit Function
+            End If
+        Next i
+    End If
+    
+    CountDecimalPlaces = 0
+    Exit Function
+    
+ErrorHandler:
+    CountDecimalPlaces = 0
+End Function
+
 ' Función auxiliar para convertir string a número si es posible
+' Convierte todos los valores numéricos a Double para permitir operaciones matemáticas en Excel
+' Double tiene suficiente precisión (~15-17 dígitos significativos) para la mayoría de casos prácticos
+' Para ver más decimales en Excel, el usuario puede formatear las celdas después con el formato numérico deseado
 Private Function ConvertToNumberIfPossible(value As String) As Variant
     On Error GoTo ErrorHandler
     
@@ -559,15 +685,24 @@ Private Function ConvertToNumberIfPossible(value As String) As Variant
         Exit Function
     End If
     
+    ' Si no es numérico, devolver como texto
+    If Not IsNumericValue(value) Then
+        ConvertToNumberIfPossible = value
+        Exit Function
+    End If
+    
     ' Reemplazar punto por coma para formato español
     Dim spanishValue As String
     spanishValue = Replace(value, ".", ",")
     
-    ' Intentar convertir a número
+    ' Intentar convertir a número (Double)
+    ' Double puede representar hasta ~15-17 dígitos significativos, lo cual es suficiente
+    ' para la mayoría de casos prácticos. Para valores con muchos decimales pero pocos
+    ' dígitos totales (como 2.8546776041666667), Double puede representarlos correctamente.
     Dim numericValue As Double
     numericValue = CDbl(spanishValue)
     
-    ' Si llegó aquí, es un número válido
+    ' Devolver como número para permitir operaciones matemáticas
     ConvertToNumberIfPossible = numericValue
     Exit Function
     
@@ -655,7 +790,7 @@ Private Function ExecuteAndReturnArray2D( _
     ' Llenar datos (filas 2 en adelante)
     For i = 0 To UBound(objects)
         currentObject = CleanJsonObject(objects(i))
-        values = ExtractValuesImproved(currentObject)
+        values = ExtractValuesImproved(currentObject, keys)
         
         For j = 0 To UBound(values)
             If j <= UBound(keys) Then
